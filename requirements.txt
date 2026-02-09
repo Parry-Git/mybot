@@ -1,0 +1,13 @@
+transformers>=4.57.0
+accelerate 
+
+numpy
+soundfile 
+librosa
+huggingface_hub
+
+# qwen-asr
+# qwen-tts
+
+# qwen-asr[vllm]
+# vllm>=0.9.0
