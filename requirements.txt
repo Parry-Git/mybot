@@ -5,9 +5,12 @@ numpy
 soundfile 
 librosa
 huggingface_hub
+webrtcvad
 
 # qwen-asr
 # qwen-tts
 
 # qwen-asr[vllm]
 # vllm>=0.9.0
+
+# Audio I/O and Processing
