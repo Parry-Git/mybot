@@ -15,13 +15,20 @@ Project 🤖 Mybot
 ├── bot    # 核心开发文件夹
 │   ├── core
 │   │   ├── asr
+│   │   │   ├── microphone.py
+│   │   │   └── vad.py
 │   │   ├── llm
 │   │   ├── tts
 │   │   └── utils    # 工具与测试等
+│   │       ├── config.py
+│   │       ├── tests
+│   │       └── tools
 │   ├── docs    # 文档与开发进度
-│   │   └── overview.md
+│   │   ├── architecture.md
+│   │   ├── overview.md
+│   │   └── pipeline.md
 │   ├── README.md    # 环境配置相关，已经测试跑通
-│   └── requirements.txt
+│   └── requirements.txt    # 可等待后续开发中补充相关依赖
 └── reference    # 用于即时查看官方文档、examples以及部分接口的实现
     ├── Qwen3
     │   └── ......
@@ -36,7 +43,7 @@ Project 🤖 Mybot
 > 但是这非常重要，一切与模型相关的代码编写前都请阅读并参考官方代码库中的文档和示例代码
 
 
-3. 模型选择
+1. 模型选择
 
 对应于项目目标，当前缓存了如下模型
 ```

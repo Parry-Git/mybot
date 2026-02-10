@@ -1,1 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Audio
 *.wav
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log

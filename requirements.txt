@@ -6,6 +6,7 @@ soundfile
 librosa
 huggingface_hub
 webrtcvad
+pyaudio
 
 # qwen-asr
 # qwen-tts
