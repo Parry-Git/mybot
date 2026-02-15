@@ -20,9 +20,9 @@ Project 🤖 Mybot
 │   │   ├── llm
 │   │   ├── tts
 │   │   └── utils    # 工具与测试等
-│   │       ├── config.py
-│   │       ├── tests
-│   │       └── tools
+│   │       ├── config.py    # 统一参数管理
+│   │       ├── tests    # 测试文件统一收纳
+│   │       └── tools    # 工具函数与文件统一收纳
 │   ├── docs    # 文档与开发进度
 │   │   ├── architecture.md
 │   │   ├── overview.md
@@ -73,3 +73,24 @@ Qwen/Qwen3-VL-2B-Instruct-FP8 model     3.5G     main /home/parry-wsl/.cache/hug
 *   **开发路线修正**: 
     *   LLM 模块将采用 **Interface 接口化设计**，同时支持 "本地模型" 和 "在线 API"。
     *   优先确保 API 模式跑通全流程，本地模型作为进阶目标，需配合严格的 Context Sliding Window (滑动窗口) 机制防止 OOM。
+
+6. 开发进度跟踪 (Development Progress)
+
+*   [x] **Phase 1: 基础听觉构建 (The Ear)**
+    *   [x] Microphone 录音封装
+    *   [x] VAD 语音活动检测
+    *   [x] 集成测试 (wav 保存)
+*   [x] **Phase 2: 感知与表达 (Perception & Expression)**
+    *   [x] ASR Client (Qwen3-ASR)
+    *   [x] TTS Client (Qwen3-TTS)
+    *   [x] Audio Player (实时播放)
+    *   [x] 集成测试 (Echo Bot 复读机)
+*   [ ] **Phase 3: 大脑接入与流式优化 (The Brain & Streaming)**
+    *   [ ] LLM Interface 定义
+    *   [ ] OpenAI Client (API 模式)
+    *   [ ] Token Aggregator (流式断句聚合)
+    *   [ ] Chat Bot 集成 (全流程)
+*   [ ] **Phase 4: 系统完善 (Polishing)**
+    *   [ ] 打断机制
+    *   [ ] 提示音效
+    *   [ ] 长期记忆 (Optional)

@@ -1,4 +1,6 @@
 import pyaudio
+import os
+import torch
 
 class Config:
     # Audio Hardware Settings
@@ -26,3 +28,14 @@ class Config:
     # Paths (Placeholder for future model paths)
     ASR_MODEL_PATH = "Qwen/Qwen3-ASR-0.6B"
     TTS_MODEL_PATH = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+    
+    # System Settings
+    DEVICE = "cuda" # "cuda", "cpu", "cuda:0"
+    DTYPE = torch.bfloat16 # Use bfloat16 for RTX 30/40 series
+    # Attention implementation: "eager", "sdpa", "flash_attention_2"
+    ATTN_IMPLEMENTATION = "flash_attention_2"
+    
+    # TTS Configuration
+    TTS_SAMPLE_RATE = 24000
+    TTS_REF_AUDIO_PATH = os.path.join("bot", "assets", "caixukun.wav")
+
