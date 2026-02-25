@@ -7,6 +7,7 @@ librosa
 huggingface_hub
 webrtcvad
 pyaudio
+openai
 
 # qwen-asr
 # qwen-tts

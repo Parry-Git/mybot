@@ -18,6 +18,8 @@ Project 🤖 Mybot
 │   │   │   ├── microphone.py
 │   │   │   └── vad.py
 │   │   ├── llm
+│   │   │   ├── llm_client.py    # LLM 统一接口与实装 (API & 本地)
+│   │   │   └── streamer.py      # 流式断句与 Token 聚合 (兼容 <think> 标签过滤)
 │   │   ├── tts
 │   │   └── utils    # 工具与测试等
 │   │       ├── config.py    # 统一参数管理
@@ -43,7 +45,7 @@ Project 🤖 Mybot
 > 但是这非常重要，一切与模型相关的代码编写前都请阅读并参考官方代码库中的文档和示例代码
 
 
-1. 模型选择
+3. 模型选择
 
 对应于项目目标，当前缓存了如下模型
 ```
@@ -63,16 +65,18 @@ Qwen/Qwen3-VL-2B-Instruct-FP8 model     3.5G     main /home/parry-wsl/.cache/hug
 显卡：NVIDIA GeForce RTX 4060 Laptop GPU 8GB （独立显卡）/ AMD Radeon 780M Graphics （集成显卡）
 开发环境位于wsl ubuntu
 
-5. 关键技术决策记录 (2026-02-10)
+5. 关键技术决策记录 (2026-02-10 & 2026-02-25)
 *   **硬件可行性验证**: 
     *   经实测，在 RTX 4060 (8GB) 上同时加载 ASR(FP16) + TTS(FP16) + LLM(FP8) 是可行的。
     *   **显存水位**: Allocated ~6GB / Reserved ~7.2GB。处于"可用但紧凑"状态，剩余约 1GB 动态空间用于 KV Cache 和推理中间状态。
 *   **量化策略**: 
     *   **ASR & TTS**: 强制保持 **FP16/BF16**。因 0.6B 模型量化收益较低，但对语音质量/识别率影响巨大，不建议量化。
     *   **LLM**: 采用 **FP8** 或更激进的 **Int4** 以换取显存空间，或换用在线大模型api
-*   **开发路线修正**: 
-    *   LLM 模块将采用 **Interface 接口化设计**，同时支持 "本地模型" 和 "在线 API"。
-    *   优先确保 API 模式跑通全流程，本地模型作为进阶目标，需配合严格的 Context Sliding Window (滑动窗口) 机制防止 OOM。
+*   **开发路线修正与进度**: 
+    *   LLM 模块已采用 **Interface 接口化设计**，同时支持了 "本地模型 (LocalLLMClient)" 和 "在线 API (OpenAILLMClient)"。
+    *   目前在线 API 方案（以 DeepSeek API 为例）的流式调用 (`stream_chat`) 与 `TokenAggregator` (语段级断句并过滤 `<think>` 标签) 已**全部跑通并完成适配**。
+    *   **关于本地模型优化:** 经测试，纯 `transformers` 的 1.7B 模型生成速度不如 GGUF/llama.cpp 工具的预期，存在性能瓶颈。
+    *   **当前结论:** 决定暂时以**在线 API (方案 B)** 为主线，继续开发后续流程。本地模型在后续阶段再考虑引入 vLLM 或 llama.cpp 等加速方案进行针对性优化。
 
 6. 开发进度跟踪 (Development Progress)
 
@@ -85,12 +89,19 @@ Qwen/Qwen3-VL-2B-Instruct-FP8 model     3.5G     main /home/parry-wsl/.cache/hug
     *   [x] TTS Client (Qwen3-TTS)
     *   [x] Audio Player (实时播放)
     *   [x] 集成测试 (Echo Bot 复读机)
-*   [ ] **Phase 3: 大脑接入与流式优化 (The Brain & Streaming)**
-    *   [ ] LLM Interface 定义
-    *   [ ] OpenAI Client (API 模式)
-    *   [ ] Token Aggregator (流式断句聚合)
-    *   [ ] Chat Bot 集成 (全流程)
+*   [x] **Phase 3: 大脑接入与流式优化 (The Brain & Streaming)**
+    *   [x] LLM Interface 定义
+    *   [x] OpenAI Client (API 模式) 及流式适配
+    *   [x] Token Aggregator (流式断句聚合与过滤)
+    *   [ ] Chat Bot 集成 (全流程) *(Next)*
 *   [ ] **Phase 4: 系统完善 (Polishing)**
     *   [ ] 打断机制
     *   [ ] 提示音效
     *   [ ] 长期记忆 (Optional)
+
+7. 开发注意事项 (Development Notes)
+
+*   **关于 Gemini CLI 与 Python 字符串转义的重要提示**:
+    *   **问题描述**: 在使用 Gemini CLI 的 `write_file` 或 `replace` 工具向 Python 文件中写入包含换行符 `\n` 的字符串时，可能会遇到 `SyntaxError: untermined string literal` 的错误。
+    *   **原因分析**: 这是因为 Gemini CLI 在生成工具调用的 JSON 负载时，会将字符串中的 `\n` 直接解释为物理换行，而不是保留为 `\` 和 `n` 两个字符。这导致写入文件中的 Python 字符串字面量被破坏。
+    *   **解决方案与最佳实践**: 当你需要通过 Gemini CLI 在 Python 代码中写入包含 `\n` 等特殊转义字符的字符串时，请务必在你的指令中，或者在 Gemini CLI 生成代码后，手动确认 `\n` 被正确地表示为字面上的 `\n` 而不是一个实际的换行。如果发现生成的代码存在语法问题，应立即指出并要求其修正，以确保写入文件的内容是语法正确的。

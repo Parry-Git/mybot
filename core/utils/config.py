@@ -37,5 +37,8 @@ class Config:
     
     # TTS Configuration
     TTS_SAMPLE_RATE = 24000
-    TTS_REF_AUDIO_PATH = os.path.join("bot", "assets", "caixukun.wav")
+    TTS_REF_AUDIO_PATH = os.path.join("bot", "assets", "caixukun2.wav")
+    # TTS_REF_AUDIO_PATH = os.path.join("assets", "caixukun2.wav")
+
+    DEEPSEEK_API_KEY = "REMOVED_API_KEY"
 
