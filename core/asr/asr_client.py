@@ -64,4 +64,4 @@ class ASRClient:
             
         except Exception as e:
             logger.error(f"ASR Transcription error: {e}")
-            return ""
+            return "", None

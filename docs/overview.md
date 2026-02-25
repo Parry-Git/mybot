@@ -93,7 +93,7 @@ Qwen/Qwen3-VL-2B-Instruct-FP8 model     3.5G     main /home/parry-wsl/.cache/hug
     *   [x] LLM Interface 定义
     *   [x] OpenAI Client (API 模式) 及流式适配
     *   [x] Token Aggregator (流式断句聚合与过滤)
-    *   [ ] Chat Bot 集成 (全流程) *(Next)*
+    *   [x] Chat Bot 集成 (全流程)
 *   [ ] **Phase 4: 系统完善 (Polishing)**
     *   [ ] 打断机制
     *   [ ] 提示音效
