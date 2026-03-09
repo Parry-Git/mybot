@@ -41,15 +41,16 @@ class AudioPlayer:
             try: os.remove(self.temp_file)
             except: pass
 
-    def play(self, audio_data):
+    def play(self, audio_data, sample_rate=None):
         """
         Plays audio in background using aplay.
         """
         try:
             self.stop_playback() # Stop previous if still playing
             
+            rate = sample_rate if sample_rate is not None else self.rate
             audio_int16 = (audio_data * 32767).astype(np.int16)
-            wavfile.write(self.temp_file, self.rate, audio_int16)
+            wavfile.write(self.temp_file, rate, audio_int16)
             
             # Use Popen instead of run to make it non-blocking
             self._process = subprocess.Popen(

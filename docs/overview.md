@@ -55,6 +55,7 @@ REPO ID               REPO TYPE SIZE ON DISK NB FILES REFS LOCAL PATH
 Qwen/Qwen3-1.7B-FP8           model     2.7G     main /home/parry-wsl/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B-FP8           
 Qwen/Qwen3-ASR-0.6B           model     1.9G     main /home/parry-wsl/.cache/huggingface/hub/models--Qwen--Qwen3-ASR-0.6B           
 Qwen/Qwen3-TTS-12Hz-0.6B-Base model     2.5G     main /home/parry-wsl/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base 
+Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice model 2.5G  main /home/parry-wsl/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-CustomVoice 
 Qwen/Qwen3-VL-2B-Instruct-FP8 model     3.5G     main /home/parry-wsl/.cache/huggingface/hub/models--Qwen--Qwen3-VL-2B-Instruct-FP8 
 ```
 （注：其中qwen-vl等待后续版本启动模型视觉输入相关开发时备用，暂时可忽略）

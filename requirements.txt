@@ -9,6 +9,10 @@ webrtcvad
 pyaudio
 openai
 
+# For Kokoro TTS, espeak-ng is also required. Please install it using your system's package manager.
+# For example: sudo apt-get install espeak-ng
+kokoro>=0.9.4
+
 # qwen-asr
 # qwen-tts
 
