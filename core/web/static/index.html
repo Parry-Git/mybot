@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyBot / 对话室</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">mybot<span>对话室</span></a
+      ><span class="local">LOCAL VOICE / 01</span>
+    </header>
+    <main>
+      <section class="controls">
+        <p class="eyebrow">让想法，自然发生。</p>
+        <h1>说说看。<br /><span>我在听。</span></h1>
+        <p class="intro">
+          用你习惯的语速，开始一段对话。<br />识别到的文字和回复会留在右侧。
+        </p>
+        <div class="dial" aria-hidden="true">
+          <div class="dial-inner"><span id="level"></span></div>
+          <span class="dial-label">VOICE</span>
+        </div>
+        <button id="connect" class="primary">开启麦克风 <span>↗</span></button>
+        <button id="interrupt" class="secondary" disabled>打断当前回复</button>
+        <p id="status" role="status" aria-live="polite">服务已就绪，等待连接</p>
+        <p class="privacy">
+          麦克风仅在连接期间启用。<br />语音在本机处理，识别文本发送至 LLM
+          服务。
+        </p>
+      </section>
+      <section class="conversation" aria-label="对话记录">
+        <div class="section-label">
+          <span>这一刻的对话</span><span id="session-state">未连接</span>
+        </div>
+        <div id="transcript" role="log" aria-live="polite">
+          <div id="empty">
+            <span>01</span>
+            <p>从一句“你好”开始。</p>
+            <small>不必按住按钮，停顿后我会回答。</small>
+          </div>
+        </div>
+        <div class="timing">
+          <div><span>识别收尾</span><strong id="asr">-</strong></div>
+          <div><span>语音首包</span><strong id="tts">-</strong></div>
+          <div><span>浏览器首播</span><strong id="first-audio">-</strong></div>
+        </div>
+        <p class="footnote">
+          首播计时从识别到说话结束开始，不含静音判定与声卡延迟。
+        </p>
+      </section>
+    </main>
+    <footer>
+      <span>MYBOT / PERSONAL VOICE ASSISTANT</span
+      ><span>听见 · 理解 · 回应</span>
+    </footer>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

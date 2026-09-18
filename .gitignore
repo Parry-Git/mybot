@@ -1,9 +1,18 @@
 # Python
 __pycache__/
 *.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
 
 # Audio
 *.wav
+*.flac
+*.mp3
+*.m4a
+*.ogg
+*.pcm
 
 # IDE
 .vscode/
@@ -14,9 +23,31 @@ __pycache__/
 
 # Logs
 *.log
+artifacts/
+.pytest_cache/
+.ruff_cache/
 
 # Local tooling
 .codex
+.env
+.env.*
+!.env.example
 
 # Model artifacts
 pretrained_models/
+models/
+checkpoints/
+.cache/
+*.safetensors
+*.gguf
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.onnx_data
+*.bin
+*.npy
+*.npz
+*.engine
+*.spk
+*.rvq

@@ -1,115 +1,139 @@
-from abc import ABC, abstractmethod
-from typing import Generator, List, Dict
-import os
-import sys
-from threading import Thread
+from __future__ import annotations
 
-# Ensure we can import from utils
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.config import Config
-from openai import OpenAI
+import asyncio
+import logging
+import queue
+import threading
+from abc import ABC, abstractmethod
+from collections.abc import Generator, Sequence
+from concurrent.futures import Future
+from typing import Optional
+
+import httpx
+from openai import AsyncOpenAI
+
+from core.config import LLMSettings
+
+logger = logging.getLogger(__name__)
+Message = dict[str, str]
+
 
 class LLMInterface(ABC):
-    """Abstract interface for LLM clients."""
     @abstractmethod
-    def stream_chat(self, history: List[Dict[str, str]], system_prompt: str = None) -> Generator[str, None, None]:
-        pass
+    def stream_chat(
+        self,
+        history: Sequence[Message],
+        system_prompt: Optional[str] = None,
+        cancel: Optional[threading.Event] = None,
+    ) -> Generator[str, None, None]:
+        raise NotImplementedError
+
 
 class OpenAILLMClient(LLMInterface):
-    """API-based LLM Client using the OpenAI SDK format (e.g. for DeepSeek)."""
-    def __init__(self, api_key: str = None, base_url: str = "https://api.deepseek.com", model: str = "deepseek-chat"):
-        self.api_key = api_key or getattr(Config, 'DEEPSEEK_API_KEY', None)
-        if not self.api_key:
-             self.api_key = os.environ.get('DEEPSEEK_API_KEY')
-        
-        if not self.api_key:
-             raise ValueError("API Key for DeepSeek is not set in Config or environment.")
+    """Streaming OpenAI-compatible client, configured through environment variables."""
 
-        self.base_url = base_url
-        self.model = model
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+    def __init__(self, settings: Optional[LLMSettings] = None) -> None:
+        self.settings = settings or LLMSettings()
+        if not self.settings.api_key:
+            raise ValueError("DEEPSEEK_API_KEY is not set")
+        self.client = AsyncOpenAI(
+            api_key=self.settings.api_key,
+            base_url=self.settings.base_url,
+            timeout=httpx.Timeout(self.settings.timeout_seconds, connect=10.0),
+            max_retries=0,
+        )
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._loop.run_forever, name="llm-http", daemon=True)
+        self._thread.start()
+        self._state_lock = threading.RLock()
+        self._active: set[Future] = set()
+        self._closed = False
 
-    def stream_chat(self, history: List[Dict[str, str]], system_prompt: str = "You are a helpful assistant") -> Generator[str, None, None]:
-        """
-        Streams response from the LLM.
-        
-        Args:
-            history: List of message dicts [{"role": "user/assistant", "content": "..."}]
-            system_prompt: Optional system prompt to prepend.
-        
-        Yields:
-            Text chunks (tokens) as they are generated.
-        """
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        
-        messages.extend(history)
+    def stream_chat(
+        self,
+        history: Sequence[Message],
+        system_prompt: Optional[str] = None,
+        cancel: Optional[threading.Event] = None,
+    ) -> Generator[str, None, None]:
+        if cancel is not None and cancel.is_set():
+            return
+        prompt = self.settings.system_prompt if system_prompt is None else system_prompt
+        messages: list[Message] = []
+        if prompt:
+            messages.append({"role": "system", "content": prompt})
+        messages.extend(dict(message) for message in history)
 
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
+        extra_body = None
+        if "deepseek" in self.settings.base_url.lower():
+            thinking_type = "enabled" if self.settings.thinking_enabled else "disabled"
+            extra_body = {"thinking": {"type": thinking_type}}
+        tokens: queue.Queue[str] = queue.Queue(maxsize=32)
+
+        async def receive() -> None:
+            response = await self.client.chat.completions.create(
+                model=self.settings.model,
                 messages=messages,
-                stream=True
+                stream=True,
+                max_tokens=self.settings.max_output_tokens,
+                extra_body=extra_body,
             )
+            try:
+                async for chunk in response:
+                    if not chunk.choices:
+                        continue
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        while True:
+                            try:
+                                tokens.put_nowait(content)
+                                break
+                            except queue.Full:
+                                await asyncio.sleep(0.01)
+            finally:
+                await response.close()
 
-            for chunk in response:
-                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
-        except Exception as e:
-            print(f"Error during API call: {e}")
-            yield ""
+        def forget(future: Future) -> None:
+            with self._state_lock:
+                self._active.discard(future)
 
-class LocalLLMClient(LLMInterface):
-    """Local LLM Client using transformers and TextIteratorStreamer."""
-    def __init__(self, model_id: str = "Qwen/Qwen3-1.7B-FP8"):
+        with self._state_lock:
+            if self._closed:
+                raise RuntimeError("LLM client is closed")
+            future = asyncio.run_coroutine_threadsafe(receive(), self._loop)
+            self._active.add(future)
+            future.add_done_callback(forget)
         try:
-            from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
-            import torch
-        except ImportError:
-            raise ImportError("Please install transformers and torch to use LocalLLMClient.")
-            
-        self.model_id = model_id
-        self.device = Config.DEVICE
-        self.dtype = Config.DTYPE
-        
-        print(f"Loading Local LLM model: {model_id} ...")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-        
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            torch_dtype=self.dtype,
-            device_map="auto",
-        )
-        self.streamer_class = TextIteratorStreamer
-        print("Local LLM Model loaded successfully.")
+            while True:
+                if cancel is not None and cancel.is_set():
+                    return
+                try:
+                    yield tokens.get(timeout=0.02)
+                except queue.Empty:
+                    if future.done():
+                        future.result()
+                        return
+        finally:
+            future.cancel()
 
-    def stream_chat(self, history: List[Dict[str, str]], system_prompt: str = "You are a helpful assistant") -> Generator[str, None, None]:
-        messages = []
-        if system_prompt:
-             messages.append({"role": "system", "content": system_prompt})
-        messages.extend(history)
-        
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
-        streamer = self.streamer_class(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
-        
-        generation_kwargs = dict(
-            model_inputs,
-            streamer=streamer,
-            max_new_tokens=512,
-            do_sample=True,
-            top_p=0.8,
-            temperature=0.7
-        )
-        
-        thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
-        thread.start()
-        
-        for new_text in streamer:
-            yield new_text
+    def close(self) -> None:
+        with self._state_lock:
+            if self._closed:
+                return
+            self._closed = True
+            for future in list(self._active):
+                future.cancel()
+
+        async def shutdown() -> None:
+            tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            await self.client.close()
+
+        try:
+            asyncio.run_coroutine_threadsafe(shutdown(), self._loop).result(timeout=5)
+        finally:
+            self._loop.call_soon_threadsafe(self._loop.stop)
+            self._thread.join(timeout=5)
+            if not self._thread.is_alive():
+                self._loop.close()

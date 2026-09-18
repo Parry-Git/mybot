@@ -1,0 +1,326 @@
+:root {
+  --paper: #f4f1e8;
+  --ink: #24392e;
+  --muted: #788378;
+  --line: #cdd3c5;
+  --accent: #cf5b36;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at 10% 70%, #dce4d4 0, transparent 45%),
+    var(--paper);
+  font:
+    15px/1.7 "Source Han Sans SC",
+    "Microsoft YaHei",
+    sans-serif;
+}
+header,
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 5vw;
+}
+header {
+  height: 104px;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  color: inherit;
+  text-decoration: none;
+  font:
+    38px "Noto Serif CJK SC",
+    "Songti SC",
+    serif;
+  letter-spacing: -2px;
+}
+.brand span {
+  display: inline-block;
+  padding-left: 20px;
+  font:
+    13px "Source Han Sans SC",
+    sans-serif;
+  letter-spacing: 3px;
+}
+.local,
+.section-label,
+footer,
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+main {
+  max-width: 1250px;
+  margin: 60px auto;
+  padding: 0 5vw;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 8vw;
+}
+.eyebrow {
+  color: var(--accent);
+  margin: 0 0 20px;
+}
+h1 {
+  font:
+    68px/1.28 "Noto Serif CJK SC",
+    "Songti SC",
+    serif;
+  letter-spacing: -3px;
+  margin: 0 0 24px;
+}
+h1 span {
+  color: #7c8977;
+}
+.intro {
+  color: #697367;
+  font-size: 14px;
+}
+.dial {
+  width: 160px;
+  height: 160px;
+  position: relative;
+  border: 1px solid #aebaa5;
+  border-radius: 50%;
+  margin: 32px 0;
+  display: grid;
+  place-items: center;
+  background: repeating-conic-gradient(
+    from 0deg,
+    #aebaa5 0deg 1deg,
+    transparent 1deg 15deg
+  );
+}
+.dial-inner {
+  width: 138px;
+  height: 138px;
+  border-radius: 50%;
+  background: #e5e9dd;
+  display: grid;
+  place-items: center;
+}
+#level {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition:
+    transform 70ms,
+    background 300ms;
+}
+.dial-label {
+  position: absolute;
+  bottom: 24px;
+  font: 8px monospace;
+  letter-spacing: 3px;
+}
+button {
+  cursor: pointer;
+  font: inherit;
+  border: 0;
+  transition: background 150ms;
+}
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.primary {
+  width: 100%;
+  max-width: 330px;
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.primary:hover:not(:disabled) {
+  background: #3d5444;
+}
+.secondary {
+  display: block;
+  color: var(--ink);
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0 5px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+#status {
+  font-size: 13px;
+  margin: 18px 0 6px;
+  min-height: 22px;
+}
+.privacy,
+.footnote {
+  color: var(--muted);
+  font-size: 11px;
+}
+.conversation {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-top: 2px solid var(--ink);
+}
+.section-label {
+  padding: 18px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+#session-state {
+  color: var(--muted);
+  letter-spacing: 0;
+}
+#transcript {
+  min-height: 420px;
+  max-height: 530px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 8px 24px 0;
+  scroll-behavior: smooth;
+}
+#empty {
+  padding: 60px 0;
+  color: var(--muted);
+}
+#empty > span {
+  font:
+    italic 64px "Noto Serif CJK SC",
+    serif;
+  color: #bec7b7;
+}
+#empty p {
+  color: var(--ink);
+  font:
+    24px "Noto Serif CJK SC",
+    serif;
+  margin: 24px 0 12px;
+}
+#empty small {
+  font-size: 12px;
+}
+.entry {
+  padding: 0 0 24px;
+  animation: appear 220ms ease-out;
+}
+.entry label {
+  font:
+    10px "Cascadia Code",
+    monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.entry p {
+  margin: 7px 0 0;
+  font-size: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.entry.assistant {
+  padding-left: 20px;
+  border-left: 2px solid var(--accent);
+  margin: 2px 0 24px;
+  padding-bottom: 0;
+}
+.entry.assistant label {
+  color: var(--accent);
+}
+.timing {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.timing span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.timing strong {
+  font:
+    20px/2 "Cascadia Code",
+    monospace;
+}
+footer {
+  border-top: 1px solid var(--line);
+  min-height: 70px;
+  color: var(--muted);
+  font-size: 9px;
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 720px) {
+  header {
+    height: 78px;
+  }
+  .local {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  main {
+    margin: 32px 0;
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+  h1 {
+    font-size: 46px;
+  }
+  .dial {
+    position: absolute;
+    right: 7vw;
+    top: 170px;
+    width: 112px;
+    height: 112px;
+  }
+  .dial-inner {
+    width: 94px;
+    height: 94px;
+  }
+  .dial-label {
+    bottom: 14px;
+  }
+  #level {
+    width: 26px;
+    height: 26px;
+  }
+  .primary {
+    max-width: none;
+  }
+  #transcript {
+    min-height: 230px;
+    max-height: 420px;
+  }
+  .timing strong {
+    font-size: 16px;
+  }
+  footer span:last-child {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

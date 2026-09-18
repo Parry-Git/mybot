@@ -1,74 +1,111 @@
-import re
-from typing import Generator, Iterator
+from __future__ import annotations
+
+from collections.abc import Generator, Iterator
+
 
 class TokenAggregator:
-    """
-    Aggregates a stream of tokens into chunks suitable for TTS processing.
-    It filters out <think>...</think> reasoning blocks and chunks the output
-    based on punctuation (phrase-level streaming).
-    """
-    def __init__(self, chunk_length_threshold: int = 12):
-        self.chunk_length_threshold = chunk_length_threshold
-        # Punctuation that triggers a chunk release
-        self.punctuation_pattern = re.compile(r'([。！？，；、\!\?\,])')
-        
-    def aggregate(self, token_stream: Iterator[str]) -> Generator[str, None, None]:
-        """
-        Takes an iterator of tokens and yields sentences/phrases.
-        """
-        buffer = ""
-        in_think_block = False
-        think_buffer = ""
-        
-        for token in token_stream:
-            # Handle <think> blocks across tokens
-            if in_think_block:
-                think_buffer += token
-                if "</think>" in think_buffer:
-                    # Find where </think> ends and keep the rest
-                    parts = think_buffer.split("</think>")
-                    in_think_block = False
-                    buffer += parts[-1] # Append anything after </think> to the main buffer
-                    think_buffer = ""
-                continue
-            
-            # Not in think block
-            buffer += token
-            
-            # Check if we just entered a think block
-            if "<think>" in buffer:
-                parts = buffer.split("<think>")
-                buffer = parts[0]
-                in_think_block = True
-                think_buffer = parts[1] if len(parts) > 1 else ""
-                
-                # Yield anything before <think> if there's any valid chunk
-                if buffer.strip():
-                    yield buffer.strip()
-                    buffer = ""
-                continue
-                
-            # If we might be in the middle of receiving "<think>" (e.g., "<th")
-            # We delay yielding if the buffer ends with something that could be a tag
-            if buffer.endswith("<") or buffer.endswith("<t") or buffer.endswith("<th") or buffer.endswith("<thi") or buffer.endswith("<thin") or buffer.endswith("<think"):
+    """Remove reasoning blocks and incrementally form speakable phrases."""
+
+    _OPEN_TAG = "<think>"
+    _CLOSE_TAG = "</think>"
+    _STRONG_PUNCTUATION = frozenset("。！？!?\n")
+    _WEAK_PUNCTUATION = frozenset("，,；;：:")
+
+    def __init__(self, min_chars: int = 8, max_chars: int = 42) -> None:
+        if min_chars < 1 or max_chars < min_chars:
+            raise ValueError("phrase lengths must satisfy 1 <= min_chars <= max_chars")
+        self.min_chars = min_chars
+        self.max_chars = max_chars
+        self.reset()
+
+    def reset(self) -> None:
+        self._filter_buffer = ""
+        self._phrase_buffer = ""
+        self._visible_parts: list[str] = []
+        self._in_think = False
+
+    @property
+    def visible_text(self) -> str:
+        return "".join(self._visible_parts).strip()
+
+    @staticmethod
+    def _partial_tag_length(text: str, tag: str) -> int:
+        upper = min(len(text), len(tag) - 1)
+        for size in range(upper, 0, -1):
+            if text.endswith(tag[:size]):
+                return size
+        return 0
+
+    def _filter_reasoning(self, token: str) -> str:
+        self._filter_buffer += token
+        visible: list[str] = []
+
+        while self._filter_buffer:
+            if self._in_think:
+                end = self._filter_buffer.find(self._CLOSE_TAG)
+                if end >= 0:
+                    self._filter_buffer = self._filter_buffer[end + len(self._CLOSE_TAG) :]
+                    self._in_think = False
+                    continue
+                keep = self._partial_tag_length(self._filter_buffer, self._CLOSE_TAG)
+                self._filter_buffer = self._filter_buffer[-keep:] if keep else ""
+                break
+
+            start = self._filter_buffer.find(self._OPEN_TAG)
+            if start >= 0:
+                visible.append(self._filter_buffer[:start])
+                self._filter_buffer = self._filter_buffer[start + len(self._OPEN_TAG) :]
+                self._in_think = True
                 continue
 
-            # Check for punctuation to chunk
-            match = self.punctuation_pattern.search(buffer)
-            if match:
-                # Find the last punctuation index
-                # We want to split at the *first* punctuation we see to keep chunks small and responsive
-                # But to be safe, let's just split at the first punctuation
-                first_punct_idx = match.end()
-                chunk = buffer[:first_punct_idx]
-                buffer = buffer[first_punct_idx:]
-                
-                if chunk.strip():
-                    yield chunk.strip()
-            
-            # Or if buffer is getting too long even without punctuation, maybe force chunk
-            # But usually it's better to wait for punctuation for natural TTS.
-            
-        # Yield remaining buffer
-        if buffer.strip():
-            yield buffer.strip()
+            keep = self._partial_tag_length(self._filter_buffer, self._OPEN_TAG)
+            emit_to = len(self._filter_buffer) - keep
+            visible.append(self._filter_buffer[:emit_to])
+            self._filter_buffer = self._filter_buffer[emit_to:]
+            break
+
+        return "".join(visible)
+
+    def _drain_phrases(self, text: str) -> list[str]:
+        phrases: list[str] = []
+        for char in text:
+            self._phrase_buffer += char
+            stripped_length = len(self._phrase_buffer.strip())
+            strong_boundary = char in self._STRONG_PUNCTUATION
+            if char == "." and len(self._phrase_buffer) >= 2:
+                strong_boundary = not self._phrase_buffer[-2].isdigit()
+            weak_boundary = char in self._WEAK_PUNCTUATION and stripped_length >= self.min_chars
+            if strong_boundary or weak_boundary or stripped_length >= self.max_chars:
+                phrase = self._phrase_buffer.strip()
+                self._phrase_buffer = ""
+                if phrase:
+                    phrases.append(phrase)
+        return phrases
+
+    def feed(self, token: str) -> list[str]:
+        if not token:
+            return []
+        visible = self._filter_reasoning(token)
+        if not visible:
+            return []
+        self._visible_parts.append(visible)
+        return self._drain_phrases(visible)
+
+    def finish(self) -> list[str]:
+        phrases: list[str] = []
+        if not self._in_think and self._filter_buffer:
+            visible = self._filter_buffer
+            self._visible_parts.append(visible)
+            phrases.extend(self._drain_phrases(visible))
+        self._filter_buffer = ""
+        phrase = self._phrase_buffer.strip()
+        self._phrase_buffer = ""
+        if phrase:
+            phrases.append(phrase)
+        return phrases
+
+    def aggregate(self, token_stream: Iterator[str]) -> Generator[str, None, None]:
+        self.reset()
+        for token in token_stream:
+            yield from self.feed(token)
+        yield from self.finish()
