@@ -19,7 +19,7 @@ def test_cancellation_closes_a_stalled_http_token_stream():
             chunk = {"choices": [{"index": 0, "delta": {"content": "hello"}}]}
             self.wfile.write(("data: " + json.dumps(chunk) + "\n\n").encode())
             self.wfile.flush()
-            release.wait(timeout=5)
+            release.wait(timeout=15)
 
         def log_message(self, *_args):
             pass
@@ -46,7 +46,8 @@ def test_cancellation_closes_a_stalled_http_token_stream():
     thread = threading.Thread(target=consume, daemon=True)
     thread.start()
     try:
-        assert first_token.wait(timeout=2)
+        # Cold HTTP-client setup is not the behavior under test; cancellation is.
+        assert first_token.wait(timeout=10), f"test stream did not start: {errors}"
         cancel.set()
         thread.join(timeout=1)
         assert not thread.is_alive(), "a cancelled turn must not wait for the server's next token"
